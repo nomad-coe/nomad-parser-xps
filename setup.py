@@ -21,9 +21,9 @@ from setuptools import setup, find_packages
 
 def main():
     setup(
-        name='exampleparser',
+        name='xpsparser',
         version='1.0',
-        description='NOMAD parser implementation for Example.',
+        description='NOMAD parser implementation for XPS.',
         author='The NOMAD Authors',
         license='APACHE 2.0',
         packages=find_packages(exclude=['tests']),
