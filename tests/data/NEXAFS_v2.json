@@ -18,7 +18,7 @@
             "data_labels": [
                 {
                     "channel_id": 0,
-                    "label": "excitation energy",
+                    "label": "excitation energy expected",
                     "unit": "eV"
                 },
                 {
@@ -28,7 +28,7 @@
                 },
                 {
                     "channel_id": 2,
-                    "label": "excitation energy",
+                    "label": "excitation energy actual",
                     "unit": "eV"
                 },
                 {
@@ -3120,7 +3120,7 @@
             "data_labels": [
                 {
                     "channel_id": 0,
-                    "label": "excitation energy",
+                    "label": "excitation energy expected",
                     "unit": "eV"
                 },
                 {
@@ -3130,7 +3130,7 @@
                 },
                 {
                     "channel_id": 2,
-                    "label": "excitation energy",
+                    "label": "excitation energy actual",
                     "unit": "eV"
                 },
                 {

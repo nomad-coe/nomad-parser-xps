@@ -22,11 +22,11 @@ import logging
 
 from nomad.utils import configure_logging
 from nomad.datamodel import EntryArchive
-from exampleparser import ExampleParser
+from xpsparser import XPSParser
 
 
 if __name__ == "__main__":
     configure_logging(console_log_level=logging.DEBUG)
     archive = EntryArchive()
-    ExampleParser().run(sys.argv[1], archive, logging)
+    XPSParser().run(sys.argv[1], archive, logging)
     json.dump(archive.m_to_dict(), sys.stdout, indent=2)

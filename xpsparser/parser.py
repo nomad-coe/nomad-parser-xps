@@ -22,14 +22,10 @@ import json
 import numpy as np
 from datetime import datetime
 import logging
-import pandas as pd
-import nomad.units
+from nomad.units import ureg
 
 from nomad.datamodel import EntryArchive
 from nomad.parsing import FairdiParser
-from nomad.datamodel.metainfo.public import section_run as Run
-from nomad.datamodel.metainfo.public import section_system as System
-from nomad.datamodel.metainfo.public import section_single_configuration_calculation as SCC
 
 from . import metainfo  # pylint: disable=unused-import
 from .metainfo import *
@@ -40,10 +36,10 @@ This is a test parser for XPS Parser
 logger = logging.getLogger(__name__)
 
 
-class ExampleParser(FairdiParser):
+class XPSParser(FairdiParser):
     def __init__(self):
         super().__init__(
-            name='parsers/example', code_name='EXAMPLE', code_homepage='https://www.example.eu/',
+            name='parsers/xpsparser', code_name='XPS', code_homepage='https://www.example.eu/',
             mainfile_mime_re=r'(application/json)'
         )
 
@@ -68,9 +64,8 @@ class ExampleParser(FairdiParser):
 
             # Sample
             sample = metadata.m_create(Sample)
-
-            sample.spectrum_region = item['metadata']['spectrum_region']
             sample.sample_id = item['metadata']['sample']
+            sample.spectrum_region = item['metadata']['spectrum_region']
 
             # Experiment
             experiment = metadata.m_create(Experiment)
@@ -89,31 +84,29 @@ class ExampleParser(FairdiParser):
             if item['metadata']['source_label'] is not None:
                 instrument.source_label = item['metadata']['source_label']
 
-            # Author Generated
-            author_generated = metadata.m_create(AuthorGenerated)
-            author_generated.author_name = item['metadata']['author']
-            author_generated.group_name = item['metadata']['group_name']
+            # Origin
+            origin = metadata.m_create(Origin)
+
+            # Author
+            author = origin.m_create(Author)
+            author.author_name = item['metadata']['author']
+            author.group_name = item['metadata']['group_name']
 
             # Data Header
+            labels_to_match = []
             for dlabel in item['metadata']['data_labels']:
                 data_header = metadata.m_create(DataHeader)
                 data_header.channel_id = dlabel['channel_id']
                 data_header.label = dlabel['label']
                 data_header.unit = dlabel['unit']
+                labels_to_match.append(dlabel['label'].replace(' ', '_'))
 
+            # Import Data
             data = measurement.m_create(Data)
-            ureg = nomad.units.ureg
-            for i in range(len(item['data'])):
+            for i, label in enumerate(labels_to_match):
                 spectrum = data.m_create(Spectrum)
-                if item['metadata']['data_labels'][i]['channel_id'] == 0:
-                    spectrum.kinetic_energy = np.array(item['data'][i]) * ureg(item['metadata']['data_labels'][i]['unit'])
-                elif item['metadata']['data_labels'][i]['channel_id'] == 1:
-                    spectrum.count = np.array(item['data'][i])
-                elif item['metadata']['data_labels'][i]['channel_id'] == 2:
-                    spectrum.excitation_energy = np.array(item['data'][i]) * ureg(item['metadata']['data_labels'][i]['unit'])
-                elif item['metadata']['data_labels'][i]['channel_id'] == 3:
-                    spectrum.ring_current = np.array(item['data'][i]) * ureg(item['metadata']['data_labels'][i]['unit'])
-                elif item['metadata']['data_labels'][i]['channel_id'] == 4:
-                    spectrum.total_electron_yield = np.array(item['data'][i]) * ureg(item['metadata']['data_labels'][i]['unit'])
-                elif item['metadata']['data_labels'][i]['channel_id'] == 5:
-                    spectrum.mirror_current = np.array(item['data'][i]) * ureg(item['metadata']['data_labels'][i]['unit'])
+                if label == 'count':
+                    value = np.array(item['data'][i])
+                else:
+                    value = np.array(item['data'][i]) * ureg(item['metadata']['data_labels'][i]['unit'])
+                setattr(spectrum, label, value)
