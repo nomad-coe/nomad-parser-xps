@@ -19,21 +19,36 @@
 import pytest
 import logging
 
-from nomad.datamodel import EntryArchive
+from nomad import utils
+from nomad.datamodel import EntryArchive, EntryMetadata
+from nomad.datamodel.ems import EMSMetadata
 
-from exampleparser import ExampleParser
+from xpsparser import XPSParser
+
+
+@pytest.fixture(scope='session', autouse=True)
+def nomad_logging():
+    utils.set_console_log_level(logging.ERROR)
 
 
 @pytest.fixture
 def parser():
-    return ExampleParser()
+    return XPSParser()
 
 
-def test_example(parser):
+@pytest.mark.parametrize('path, n_values', [
+    ('tests/data/NEXAFS_v2.json', 501),
+    ('tests/data/external_channel_XPS_v2.json', 121),
+    ('tests/data/loops_XPS_v2.json', 1202)
+])
+def test_example(parser, path, n_values):
     archive = EntryArchive()
-    parser.run('tests/data/example.out', archive, logging)
+    parser.parse(path, archive, utils.get_logger(__name__))
 
-    run = archive.section_run[0]
-    assert len(run.section_system) == 2
-    assert len(run.section_single_configuration_calculation) == 2
-    assert run.section_single_configuration_calculation[0].x_example_magic_value == 42
+    measurement = archive.section_measurement[0]
+    assert measurement.section_metadata.section_sample.sample_id is not None
+    assert measurement.section_metadata.section_experiment.method_name is not None
+    if n_values is None:
+        assert measurement.section_data is None
+    else:
+        assert measurement.section_data.section_spectrum.n_values == n_values
