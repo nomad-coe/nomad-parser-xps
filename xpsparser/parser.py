@@ -24,7 +24,7 @@ from datetime import datetime
 import logging
 
 from nomad.datamodel import EntryArchive
-from nomad.parsing import FairdiParser
+from nomad.parsing import MatchingParser
 from nomad.units import ureg
 from nomad.datamodel.metainfo.common_experimental import (
     Measurement,
@@ -43,17 +43,15 @@ This is a test parser for XPS Parser
 logger = logging.getLogger(__name__)
 
 
-class XPSParser(FairdiParser):
+class XPSParser(MatchingParser):
     def __init__(self):
         super().__init__(
-            name='parsers/xpsparser', code_name='XPS', code_homepage='https://www.example.eu/',
-            mainfile_mime_re=r'(application/json)'
+            name='parsers/xps', code_name='XPS', domain='ems',
+            code_homepage='https://www.example.eu/',
+            mainfile_contents_re=r'"method_type": "(XPS)|(NEXAFS)"'
         )
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger):
-        # Log a hello world, just to get us started.
-        logger.info('Testing the XPS World')
-
+    def parse(self, mainfile: str, archive: EntryArchive, logger=logger):
         # Read the JSON file into a dictionary
         with open(mainfile, 'rt') as f:
             file_data = json.load(f)
@@ -62,9 +60,7 @@ class XPSParser(FairdiParser):
             # Create a measurement in the archive
             measurement = archive.m_create(Measurement)
 
-            """
-            Create metadata schematic and import values
-            """
+            # Create metadata schematic and import values
             metadata = measurement.m_create(Metadata)
 
             # Load entries into each heading

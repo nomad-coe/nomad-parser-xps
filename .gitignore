@@ -52,7 +52,7 @@ lib/
 env/
 
 # python install folder
-exampleparser.egg-info/
+xpsparser.egg-info/
 .mypy_cache
 .pytest_cache
 __pycache__/

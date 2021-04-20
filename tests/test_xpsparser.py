@@ -18,6 +18,7 @@
 
 import pytest
 import logging
+import os.path
 
 from nomad import utils
 from nomad.datamodel import EntryArchive, EntryMetadata
@@ -37,13 +38,15 @@ def parser():
 
 
 @pytest.mark.parametrize('path, n_values', [
-    ('tests/data/NEXAFS_v2.json', 501),
-    ('tests/data/external_channel_XPS_v2.json', 121),
-    ('tests/data/loops_XPS_v2.json', 1202)
+    ('data/NEXAFS_v2.json', 501),
+    ('data/external_channel_XPS_v2.json', 121),
+    ('data/loops_XPS_v2.json', 1202)
 ])
 def test_example(parser, path, n_values):
     archive = EntryArchive()
-    parser.parse(path, archive, utils.get_logger(__name__))
+    parser.parse(
+        os.path.join(os.path.dirname(__file__), path),
+        archive, utils.get_logger(__name__))
 
     measurement = archive.section_measurement[0]
     assert measurement.section_metadata.section_sample.sample_id is not None
