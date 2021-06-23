@@ -23,7 +23,6 @@ import logging
 from nomad.utils import configure_logging
 from nomad.datamodel import EntryArchive
 from parser import XPSParser
-#from xpsparser import XPSParser
 
 
 if __name__ == "__main__":
