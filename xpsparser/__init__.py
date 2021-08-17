@@ -16,4 +16,4 @@
 # limitations under the License.
 #
 
-from .parser import XPSParser
+from .xpsparser import XPSParser
