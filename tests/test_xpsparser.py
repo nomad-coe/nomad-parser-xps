@@ -21,8 +21,7 @@ import logging
 import os.path
 
 from nomad import utils
-from nomad.datamodel import EntryArchive, EntryMetadata
-from nomad.datamodel.ems import EMSMetadata
+from nomad.datamodel import EntryArchive
 
 from xpsparser import XPSParser
 
@@ -43,20 +42,19 @@ def xpsparser():
 ])
 def test_example(xpsparser, path, n_values, n_channel):
     archive = EntryArchive()
-    xpsparser.run(
+    xpsparser.parse(
         os.path.join(os.path.dirname(__file__), path),
         archive, utils.get_logger(__name__))
 
     measurement = archive.section_measurement[0]
-    assert measurement.section_metadata.section_sample.sample_id is not None
     assert measurement.section_metadata.section_experiment.method_name is not None
     if n_values is None:
         assert measurement.section_data is None
     else:
-        assert measurement.section_data.section_spectrum[0].n_values == n_values
+        assert measurement.section_data.section_spectrum.n_values == n_values
     if n_channel is None:
         assert measurement.section_data is None
     else:
-        assert measurement.section_data.section_spectrum[0].n_channel == n_channel
-        assert len(measurement.section_data.section_spectrum[0].supplemental_channel_data) == n_channel
-        assert len(measurement.section_data.section_spectrum[0].supplemental_channel_header) == n_channel
+        assert measurement.section_data.section_spectrum.n_more_channels == n_channel
+        assert len(measurement.section_data.section_spectrum.more_channel_data) == n_channel
+        assert len(measurement.section_data.section_spectrum.more_channel_data_header) == n_channel

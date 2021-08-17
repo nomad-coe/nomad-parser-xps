@@ -15,14 +15,14 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install nomad-lab
+        pip install nomad-lab==1.0.0 --extra-index-url https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: pycodestyle
       run: |
         python -m pycodestyle --ignore=E501,E701,E731 *parser tests
     - name: pylint
       run: |
-        python -m pylint --load-plugins=nomad/metainfo/pylint_plugin *parser tests
+        python -m pylint --load-plugins=nomad.metainfo.pylint_plugin *parser tests
     - name: mypy
       run: |
         python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional *parser tests

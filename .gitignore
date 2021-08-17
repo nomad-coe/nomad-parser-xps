@@ -56,3 +56,8 @@ exampleparser.egg-info/
 .mypy_cache
 .pytest_cache
 __pycache__/
+xpsparser.egg-info/dependency_links.txt
+xpsparser.egg-info/PKG-INFO
+xpsparser.egg-info/requires.txt
+xpsparser.egg-info/SOURCES.txt
+xpsparser.egg-info/top_level.txt
