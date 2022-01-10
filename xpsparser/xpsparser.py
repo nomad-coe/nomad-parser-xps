@@ -17,21 +17,40 @@
 #
 
 import numpy as np
-from datetime import datetime
 import logging
 
 from nomad.datamodel import EntryArchive
+from nomad.metainfo.metainfo import MSection
 from nomad.parsing import MatchingParser
 from nomad.units import ureg
-from nomad.datamodel.metainfo.common_experimental import (
-    Measurement,
-    Metadata,
-    Experiment,
-    Instrument,
-    Origin, Author,
-    Data, DataHeader, Spectrum)
+from nomad.datamodel.metainfo.measurements import Measurement, Instrument, Spectrum
+from nomad.datamodel.results import Results, Method, Properties, SpectroscopyProperties
+from nomad.metainfo import Quantity, MSection, Section, SubSection
 
 logger = logging.getLogger(__name__)
+
+
+class XpsInstrument(MSection):
+    n_scans = Quantity(type=str)
+    dwell_time = Quantity(type=str)
+    excitation_energy = Quantity(type=str)
+    source_label = Quantity(type=str)
+
+
+class XpsMeasurment(MSection):
+    spectrum = SubSection(section_def=Spectrum)
+    spectrum_region = Quantity(type=str, shape=[])
+
+
+class MyMeasurement(Measurement):
+    m_def = Section(extends_base_section=True)
+    xps = SubSection(section_def=XpsMeasurment)
+
+
+class MyInstrument(Instrument):
+    m_def = Section(extends_base_section=True)
+    xps = SubSection(section_def=XpsInstrument)
+
 
 # Global variables
 PRIMARY_SPECTRUM_INDICATORS = ['region', 'Region']
@@ -553,66 +572,68 @@ class XPSParser(MatchingParser):
         self.extractAllTags()
 
         for item in self.dataset:
-            # Create a measurement in the archive
-            measurement = archive.m_create(Measurement)
+            # Measurement and instrument
+            measurement = Measurement(
+                method_name=item['metadata']['method_type'],
+                instrument=[Instrument(
+                    xps=XpsInstrument(
+                        n_scans=item['metadata']['n_scans'],
+                        dwell_time=item['metadata']['dwell_time'],
+                        excitation_energy=item['metadata']['excitation_energy'],
+                        source_label=item['metadata'].get('source_label', None)
+                    ),
+                )],
+                xps=XpsMeasurment(
+                    spectrum=Spectrum()
+                )
+            )
+            archive.measurement.append(measurement)
 
-            # Create metadata schematic and import values
-            metadata = measurement.m_create(Metadata)
-
-            # Experiment
-            experiment = metadata.m_create(Experiment)
-            experiment.method_name = item['metadata']['method_type']
-            experiment.experiment_publish_time = datetime.now()
-
-            # Instrument
-            instrument = metadata.m_create(Instrument)
-            instrument.n_scans = item['metadata']['n_scans']
-            instrument.dwell_time = item['metadata']['dwell_time']
-            instrument.excitation_energy = item['metadata']['excitation_energy']
-
-            if item['metadata'].get('source_label') is not None:
-                instrument.source_label = item['metadata']['source_label']
-
-            # Origin
-            origin = metadata.m_create(Origin)
-
-            # Author
-            author = origin.m_create(Author)
-            author.group_name = item['metadata']['group_name']
-
-            # Data Header
-            data = measurement.m_create(Data)
-            spectrum = data.m_create(Spectrum)
-            channels_in_metainfo = []
+            # Channels
+            channels = []
 
             for dlabel in item['metadata']['data_labels']:
                 current_label = dlabel['label'].lower().replace(' ', '_')
-                channels_in_metainfo.append(current_label)
+                channels.append(current_label)
 
-                conditions = [current_label != 'count', current_label != 'total_counts',
-                              current_label != 'energy', current_label != 'kinetic_energy']
-
-                if all(conditions):
-                    data_header = spectrum.m_create(DataHeader)
-                    data_header.channel_id = str(dlabel['channel_id'])
-                    data_header.label = dlabel['label']
-                    data_header.unit = dlabel['unit']
+                if current_label not in ['count', 'total_counts', 'energy', 'kinetic_energy']:
+                    channel = Spectrum.SpectrumChannel()
+                    channel.channel_id = str(dlabel['channel_id'])
+                    channel.label = dlabel['label']
+                    channel.unit = dlabel['unit']
+                    measurement.xps.spectrum.additional_channels.append(channel)
                     continue
 
-            # Import Data
+            # Channel data
             more_channel_data = []
-            for i, label in enumerate(channels_in_metainfo):
-                if label == 'count' or label == 'total_counts':
+            for i, label in enumerate(channels):
+                if label in ['count', 'total_counts']:
                     label = 'count'
-                    spectrum.count = np.array(item['data'][i])
+                    measurement.xps.spectrum.count = np.array(item['data'][i])
                     continue
-                if label == 'energy' or label == 'kinetic_energy':
+                if label in ['energy', 'kinetic_energy']:
                     value = np.array(
                         item['data'][i]) * ureg(item['metadata']['data_labels'][i]['unit'])
-                    spectrum.energy = value
+                    measurement.xps.spectrum.energy = value
                     continue
                 more_channel_data.append(item['data'][i])
 
-            spectrum.n_values = len(item['data'][0])
-            spectrum.more_channel_data = more_channel_data
-            spectrum.spectrum_region = item['metadata']['spectrum_region']
+            measurement.xps.spectrum.additional_channel_data = more_channel_data
+            measurement.xps.spectrum_region = item['metadata']['spectrum_region']
+
+            # Results
+            if archive.results is None:
+                archive.results = Results()
+            results = archive.results
+
+            if results.method is None:
+                results.m_create(Method)
+            results.method.method_name = 'XPS'
+
+            if measurement.xps.spectrum:
+                if results.properties is None:
+                    results.m_create(Properties)
+                if results.properties.spectroscopy is None:
+                    results.properties.m_create(SpectroscopyProperties)
+
+                results.properties.spectroscopy.spectrum = measurement.xps.spectrum

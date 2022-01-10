@@ -46,15 +46,15 @@ def test_example(xpsparser, path, n_values, n_channel):
         os.path.join(os.path.dirname(__file__), path),
         archive, utils.get_logger(__name__))
 
-    measurement = archive.section_measurement[0]
-    assert measurement.section_metadata.section_experiment.method_name is not None
+    measurement = archive.measurement[0]
+    assert measurement.method_name is not None
     if n_values is None:
-        assert measurement.section_data is None
+        assert measurement.xps.spectrum is None
     else:
-        assert measurement.section_data.section_spectrum.n_values == n_values
+        assert measurement.xps.spectrum.n_values == n_values
     if n_channel is None:
-        assert measurement.section_data is None
+        assert len(measurement.xps.spectrum.additional_channels) == 0
     else:
-        assert measurement.section_data.section_spectrum.n_more_channels == n_channel
-        assert len(measurement.section_data.section_spectrum.more_channel_data) == n_channel
-        assert len(measurement.section_data.section_spectrum.more_channel_data_header) == n_channel
+        assert measurement.xps.spectrum.n_additional_channels == n_channel
+        assert len(measurement.xps.spectrum.additional_channel_data) == n_channel
+        assert len(measurement.xps.spectrum.additional_channels) == n_channel
